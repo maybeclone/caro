@@ -9,6 +9,7 @@ import android.graphics.Rect;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Toast;
 
 import com.n14dcpt048.caro.callbacks.OnTouchCallback;
 import com.n14dcpt048.caro.models.Line;
@@ -28,7 +29,8 @@ public class ChessBoard {
     public static final int EMPTY = 0;
     public static final int PLAYER_HUMAN = 1;
     public static final int PLAYER_BOT = 2;
-    public static final int COUNT_WIN = 4;
+    public static final int COUNT_WIN = 5;
+    public static final int MAX_DEPT = 6;
 
     private Bitmap bitmap;
     private Canvas canvas;
@@ -136,23 +138,26 @@ public class ChessBoard {
         int celWidth = view.getWidth() / colQty;
         int celHeight = view.getHeight() / rowQty;
 
-        final int celWidthBM = bitmapWidth / colQty;
-        final int celHeightBM = bitmapHeight / rowQty;
-
         final int colIndex = (int) (event.getX() / celWidth);
         final int rowIndex = (int) (event.getY() / celHeight);
 
-        canvas.drawBitmap(bitmapCross, new Rect(0, 0, bitmapCross.getWidth(), bitmapCross.getHeight()),
-                new Rect(colIndex * celWidthBM, rowIndex * celHeightBM, (colIndex + 1) * celWidthBM, (rowIndex + 1) * celHeightBM), paint);
-        view.invalidate();
         callback.onTouch(colIndex, rowIndex);
+
         return true;
     }
 
-    public void onDrawOpposite(View view, int colIndex, int rowIndex){
+    public void onDrawOpposite(View view, int colIndex, int rowIndex) {
         final int celWidthBM = bitmapWidth / colQty;
         final int celHeightBM = bitmapHeight / rowQty;
         canvas.drawBitmap(bitmapTick, new Rect(0, 0, bitmapTick.getWidth(), bitmapTick.getHeight()),
+                new Rect(colIndex * celWidthBM, rowIndex * celHeightBM, (colIndex + 1) * celWidthBM, (rowIndex + 1) * celHeightBM), paint);
+        view.invalidate();
+    }
+
+    public void onDrawPlayer(View view, int colIndex, int rowIndex) {
+        final int celWidthBM = bitmapWidth / colQty;
+        final int celHeightBM = bitmapHeight / rowQty;
+        canvas.drawBitmap(bitmapCross, new Rect(0, 0, bitmapTick.getWidth(), bitmapTick.getHeight()),
                 new Rect(colIndex * celWidthBM, rowIndex * celHeightBM, (colIndex + 1) * celWidthBM, (rowIndex + 1) * celHeightBM), paint);
         view.invalidate();
     }
@@ -166,8 +171,6 @@ public class ChessBoard {
 
         final int colIndex = (int) (event.getX() / celWidth);
         final int rowIndex = (int) (event.getY() / celHeight);
-
-        Log.i("TRUNG", "col: " + colIndex + " row: " + rowIndex);
 
         if (board[rowIndex][colIndex] != EMPTY) {
             return true;
@@ -187,21 +190,25 @@ public class ChessBoard {
 
         if (isGameOver()) {
             init();
-            Log.i("GAME_STATUS", "over");
+            if (winner == PLAYER_HUMAN) {
+                Toast.makeText(context, "You win", Toast.LENGTH_SHORT).show();
+            } else if (winner == PLAYER_BOT) {
+                Toast.makeText(context, "You lose", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(context, "You drawn", Toast.LENGTH_SHORT).show();
+            }
             return true;
         }
 
         int count = getCurrentDept();
         final int currentDepth = rowQty * colQty - count;
 
-        final Record record = negamaxing.negamaxing(
+        final Record record = negamaxing.abNegamaxing(
                 ChessBoard.this,
-                rowQty * colQty,
-                currentDepth,
+                MAX_DEPT,
+                0,
                 Integer.MIN_VALUE,
                 Integer.MAX_VALUE);
-
-        Log.d("TRUNG", "onTouch: " + record.move.toString());
 
         makeMove(record.move);
 
@@ -214,19 +221,40 @@ public class ChessBoard {
         }
         view.invalidate();
 
+        if (isGameOver()) {
+            init();
+            if (winner == PLAYER_HUMAN) {
+                Toast.makeText(context, "You win", Toast.LENGTH_SHORT).show();
+            } else if (winner == PLAYER_BOT) {
+                Toast.makeText(context, "You lose", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(context, "You drawn", Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        }
+
         return true;
     }
 
     public List<Move> getMoves() {
-        List<Move> moveList = new ArrayList<>();
-        for (int i = 0; i < rowQty; i++) {
-            for (int j = 0; j < colQty; j++) {
-                if (board[i][j] == EMPTY) {
-                    moveList.add(new Move(i, j));
+        List<Move> moves = new ArrayList<>();
+        for (int i = 0; i < rowQty; ++i) {
+            for (int j = 0; j < colQty; ++j) {
+                if (board[i][j] != EMPTY) {
+                    for (int x = -1; x <= 1; ++x) {
+                        for (int y = -1; y <= 1; ++y) {
+                            if ((i + x) < 0 || (j + y) < 0 || (i + x) >= rowQty || (j + y) >= colQty) {
+                                continue;
+                            }
+                            if ((board[i + x][j + y] == EMPTY) && (!moves.contains(new Move(i + x, j + y)))) {
+                                moves.add(new Move(i + x, j + y));
+                            }
+                        }
+                    }
                 }
             }
         }
-        return moveList;
+        return moves;
     }
 
     public void makeMove(Move move) {
@@ -250,13 +278,13 @@ public class ChessBoard {
         }
     }
 
-    private boolean checkWin(int player) {
+    public boolean checkWin(int colIndex, int rowIndex) {
         int count = 0;
-        for (int i = 0; i < rowQty; i++) {
-            if (board[i][currentMove.colIndex] == player) {
+        for (int i = 0; i < rowQty - 1; i++) {
+            if (board[i][colIndex] == board[i + 1][colIndex] && board[i][colIndex] != 0) {
                 count++;
-                if (count == COUNT_WIN) {
-                    winner = player;
+                if (count == COUNT_WIN - 1) {
+                    winner = board[i][colIndex];
                     return true;
                 }
             } else {
@@ -265,11 +293,11 @@ public class ChessBoard {
         }
 
         count = 0;
-        for (int i = 0; i < colQty; i++) {
-            if (board[currentMove.rowIndex][i] == player) {
+        for (int i = 0; i < colQty - 1; i++) {
+            if (board[rowIndex][i] == board[rowIndex][i + 1] && board[rowIndex][i + 1] != 0) {
                 count++;
-                if (count == COUNT_WIN) {
-                    winner = player;
+                if (count == COUNT_WIN - 1) {
+                    winner = board[rowIndex][i];
                     return true;
                 }
             } else {
@@ -278,47 +306,54 @@ public class ChessBoard {
         }
 
         count = 0;
-        int delta = currentMove.rowIndex - currentMove.colIndex;
-        for (int i = 0; i < rowQty; i++) {
-            for (int j = 0; j < colQty; j++) {
-                if (i - j == delta) {
-                    if (board[i][j] == player) {
-                        count++;
-                        if (count == COUNT_WIN) {
-                            winner = player;
-                            return true;
-                        }
-                    } else {
-                        count = 0;
-                    }
+        int delta = rowIndex - colIndex;
+        int start;
+        int end;
+        if (delta <= 0) {
+            start = 0;
+            end = colQty - 1 + delta;
+        } else {
+            start = delta;
+            end = colQty - 1;
+        }
+        for (int i = start; i < end; i++) {
+            if (board[i][i - delta] == board[i + 1][i - delta + 1] && board[i][i - delta] != 0) {
+                count++;
+                if (count == COUNT_WIN - 1) {
+                    winner = board[i][i - delta];
+                    return true;
                 }
+            } else {
+                count = 0;
             }
         }
 
         count = 0;
-        delta = currentMove.rowIndex + currentMove.colIndex;
-        for (int i = 0; i < rowQty; i++) {
-            for (int j = 0; j < colQty; j++) {
-                if (i + j == delta) {
-                    if (board[i][j] == player) {
-                        count++;
-                        if (count == COUNT_WIN) {
-                            winner = player;
-                            return true;
-                        }
-                    } else {
-                        count = 0;
-                    }
+        delta = rowIndex + colIndex;
+        if (delta >= colQty) {
+            start = delta - colQty + 1;
+            end = colQty - 2;
+        } else {
+            start = 0;
+            end = delta;
+        }
+        for (int i = start; i < end; i++) {
+            if (board[i][delta - i] == board[i + 1][delta - (i + 1)] && board[i][delta - i] != 0) {
+                count++;
+                if (count == COUNT_WIN - 1) {
+                    winner = board[i][delta - i];
+                    return true;
                 }
+            } else {
+                count = 0;
             }
         }
-
         winner = -1;
         return false;
     }
 
     public boolean isGameOver() {
-        if (checkWin(PLAYER_HUMAN) || checkWin(PLAYER_BOT)) {
+        if (checkWin(currentMove.colIndex, currentMove.rowIndex)) {
             return true;
         }
         for (int i = 0; i < rowQty; i++) {

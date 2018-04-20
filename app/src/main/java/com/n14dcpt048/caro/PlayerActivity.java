@@ -11,6 +11,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.n14dcpt048.caro.broad.ChessBoard;
 import com.n14dcpt048.caro.callbacks.OnTouchCallback;
@@ -25,13 +26,16 @@ public class PlayerActivity extends AppCompatActivity implements OnTouchCallback
     private ChessBoard chessBoard;
     private TextView textView;
 
+    private String IP_REAL = "192.168.1.44";
+    private String IP_EMULATOR = "10.0.2.2";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
 
-        socketAsyncTask = new SocketAsyncTask(this,  new ProgressDialog(this));
-        socketAsyncTask.execute("10.0.2.2", "8080");
+        socketAsyncTask = new SocketAsyncTask(this, new ProgressDialog(this));
+        socketAsyncTask.execute(IP_EMULATOR, "8080");
 
         chessBoard = new ChessBoard(this, 800, 800, 8, 8);
         chessBoard.init();
@@ -54,7 +58,7 @@ public class PlayerActivity extends AppCompatActivity implements OnTouchCallback
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()){
+        switch (item.getItemId()) {
             case R.id.menu_reset:
                 Intent intent = new Intent(PlayerActivity.this, PlayerActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
@@ -81,11 +85,32 @@ public class PlayerActivity extends AppCompatActivity implements OnTouchCallback
     }
 
     @Override
-    public void onReceive(final int colIndex, final int rowIndex) {
+    public void onOppReceive(final int colIndex, final int rowIndex) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 chessBoard.onDrawOpposite(imageView, colIndex, rowIndex);
+                imageView.setEnabled(true);
+            }
+        });
+    }
+
+    @Override
+    public void onPlayerReceive(final int colIndex, final int rowIndex) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                chessBoard.onDrawPlayer(imageView, colIndex, rowIndex);
+            }
+        });
+    }
+
+    @Override
+    public void onFailedMakeMove() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(PlayerActivity.this, "You can NOT move this position", Toast.LENGTH_SHORT).show();
                 imageView.setEnabled(true);
             }
         });
@@ -102,7 +127,7 @@ public class PlayerActivity extends AppCompatActivity implements OnTouchCallback
         });
     }
 
-    public void enable(boolean enable){
+    public void enable(boolean enable) {
         imageView.setEnabled(enable);
     }
 }

@@ -16,11 +16,10 @@ class MainActivity : AppCompatActivity(), View.OnTouchListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        chessBoard = ChessBoard(this, 800, 800, 4, 4)
+        chessBoard = ChessBoard(this, 800, 800, 8, 8)
         chessBoard.init()
         chessboardImageView.setImageBitmap(chessBoard.drawBoard())
         chessboardImageView.setOnTouchListener(this)
-
     }
 
     override fun onTouch(v: View?, event: MotionEvent?): Boolean {

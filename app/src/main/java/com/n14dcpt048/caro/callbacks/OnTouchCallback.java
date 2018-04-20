@@ -6,6 +6,8 @@ package com.n14dcpt048.caro.callbacks;
 public interface OnTouchCallback {
 
     void onTouch(int colIndex, int rowIndex);
-    void onReceive(int colIndex, int rowIndex);
+    void onOppReceive(int colIndex, int rowIndex);
+    void onPlayerReceive(int colIndex, int rowIndex);
+    void onFailedMakeMove();
     void onReceiveStatus(String message);
 }

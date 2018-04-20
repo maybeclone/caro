@@ -6,7 +6,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
-import android.widget.Toolbar;
 
 import com.n14dcpt048.caro.PlayerActivity;
 import com.n14dcpt048.caro.callbacks.OnTouchCallback;
@@ -16,12 +15,12 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
  * Created by silent on 4/10/2018.
  */
+
 public class SocketAsyncTask extends AsyncTask<String, Integer, Integer> {
 
     private ProgressDialog progressDialog;
@@ -57,7 +56,6 @@ public class SocketAsyncTask extends AsyncTask<String, Integer, Integer> {
             requestFindingPlayer();
             // block
             int stt = acceptChallenge();
-            Log.d("TRUNG", "role: " + stt);
             return stt;
         } catch (IOException e) {
             e.printStackTrace();
@@ -94,14 +92,19 @@ public class SocketAsyncTask extends AsyncTask<String, Integer, Integer> {
                             try {
                                 stt = bufferedReader.read();
                                 message = bufferedReader.readLine();
+                                String[] arr = message.split(",");
                                 switch (stt) {
                                     case 1:
-                                        Log.d("TRUNG", "receive step " + message);
-                                        String[] arr = message.split(",");
-                                        callback.onReceive(Integer.parseInt(arr[0]), Integer.parseInt(arr[1]));
+                                        callback.onOppReceive(Integer.parseInt(arr[0]), Integer.parseInt(arr[1]));
                                         break;
                                     case 2:
                                         callback.onReceiveStatus(message);
+                                        break;
+                                    case 3:
+                                        callback.onPlayerReceive(Integer.parseInt(arr[0]), Integer.parseInt(arr[1]));
+                                        break;
+                                    case 4:
+                                        callback.onFailedMakeMove();
                                         break;
                                 }
                             } catch (IOException e) {
@@ -123,14 +126,19 @@ public class SocketAsyncTask extends AsyncTask<String, Integer, Integer> {
                             try {
                                 stt = bufferedReader.read();
                                 message = bufferedReader.readLine();
+                                String[] arr = message.split(",");
                                 switch (stt) {
                                     case 1:
-                                        Log.d("TRUNG", "receive step " + message);
-                                        String[] arr = message.split(",");
-                                        callback.onReceive(Integer.parseInt(arr[0]), Integer.parseInt(arr[1]));
+                                        callback.onOppReceive(Integer.parseInt(arr[0]), Integer.parseInt(arr[1]));
                                         break;
                                     case 2:
                                         callback.onReceiveStatus(message);
+                                        break;
+                                    case 3:
+                                        callback.onPlayerReceive(Integer.parseInt(arr[0]), Integer.parseInt(arr[1]));
+                                        break;
+                                    case 4:
+                                        callback.onFailedMakeMove();
                                         break;
                                 }
                             } catch (IOException e) {
@@ -173,7 +181,6 @@ public class SocketAsyncTask extends AsyncTask<String, Integer, Integer> {
 
     public void sendStep(int colIndex, int rowIndex) throws IOException {
         bufferedWriter.write(2);
-        Log.d("TRUNG", "send step " + colIndex + ", " + rowIndex);
         bufferedWriter.write(colIndex + "," + rowIndex);
         bufferedWriter.newLine();
         bufferedWriter.flush();
